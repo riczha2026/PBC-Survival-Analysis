@@ -2,9 +2,9 @@
 
 ## 📌 Introduction
 
-In today’s era of growing awareness around body positivity and personal health, understanding chronic and genetic illnesses has become increasingly important. One such illness is **Primary Biliary Cholangitis (PBC)** — a chronic, progressive autoimmune liver disease. Globally, PBC affects an estimated **1.76 to 14.60 individuals per 100,000 people**, with significantly higher prevalence in the United States:
-- **33.5 to 57.8 per 100,000 women**
-- **7.7 to 15.4 per 100,000 men**
+In today’s era of growing awareness around body positivity and personal health, understanding chronic and genetic illnesses has become increasingly important. One such illness is **Primary Biliary Cholangitis (PBC)** — a chronic, progressive autoimmune liver disease. Globally, PBC affects an estimated **1.76 to 14.60 individuals per 100,000 people**[^1], with significantly higher prevalence in the United States:
+- **33.5 to 57.8 per 100,000 women**[^1]
+- **7.7 to 15.4 per 100,000 men**[^1]
 
 PBC is marked by inflammation and gradual destruction of bile ducts, which are essential for transporting bile from the liver. Without treatment, the disease can progress to **liver failure and ultimately death**. Due to its progressive nature and higher incidence in certain populations, gaining a deeper understanding of PBC progression is crucial for improving treatment outcomes and patient care.
 
@@ -51,4 +51,9 @@ This study aims to contribute to:
 **Authors**: Richard Zhang, Randy Van Waes, Vincent Agrella  
 **Course**: PSTAT 175 – Spring 2025  
 **Institution**: UC Santa Barbara
+
+
+
+[^1]:Trivella, J., John, B. V., & Levy, C. (2023). Primary biliary cholangitis: Epidemiology, prognosis, and treatment. Hepatology communications, 7(6), e0179. https://doi.org/10.1097/HC9.0000000000000179
+
 
