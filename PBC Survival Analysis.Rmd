@@ -1,0 +1,421 @@
+---
+output: pdf_document
+header-includes:
+   - \usepackage{titling}
+   - \usepackage{lipsum}  
+---
+
+
+\begin{titlepage}
+\centering
+\vspace*{7cm}
+
+{\Huge \textbf{Final Project} \par}
+\vspace{0.25cm}
+{\LARGE Primary Biliary Cholangitis (PBC) Survival Analysis \par}
+\vspace{0.25cm}
+{\Large PSTAT 175, Spring 2025 \par}
+\vspace{0.25cm}
+
+{\large Richard Zhang, Randy Van Waes, Vincent Agrella \par}
+
+\vfill
+\end{titlepage}
+
+\newpage
+
+```{r setup, include=FALSE}
+library(knitr)
+library(testthat)
+library(tidyverse)
+library(patchwork)
+library(broom)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+```
+
+# Introduction:
+
+    In this new era of body positivity in society, it is important for
+many to be aware of their own health. An aspect of measuring one's heath
+is identifying for any chronic/genetic illness that one might have.
+Primary biliary cholangitis (PBC) is one of these health issues. Where
+it is a chronic, progressive autoimmune liver disease that affects an
+estimated $1.76$ to $14.60$ individuals per $100000$ people
+globally. It predominantly affects women more than men. In the
+United States, the prevalence is higher, with $33.5$ to $57.8$ per
+$100000$ women and $7.7$ to $15.4$ per $100000$ men diagnosed. PBC
+is characterized by inflammation and gradual destruction of the bile
+ducts, which are vital for transporting bile from the liver. If left
+untreated, PBC can lead to liver failure and death. Given its
+progressive nature and higher frequency in the United States,
+understanding the course of PBC is crucial for optimizing treatment and
+improving patient outcomes.
+
+
+## Research Question
+
+    In this study we will utilize the Mayo Clinic’s Primary Biliary
+Cholangitis dataset, available in R’s survival package. The dataset
+includes detailed clinical information on $418$ patients, encompassing
+$20$ variables that allow for a comprehensive analysis of the
+progression of PBC. With Mayo Clinic's data, we will be answering the
+following research question:
+
+-   How effective is D-penicillamine in slowing the progression of
+    primary biliary cholangitis (PBC), and what role do other
+    confounding clinical factors (e.g., cholesterol levels, histologic
+    stage, etc.) play in influencing survival time in PBC patients?
+
+    By uncovering these questions, our study aims to produce a
+comprehensive understanding of relevant confounding factors that
+influence the progression and survival of primary biliary cholangitis.
+To help us find the most effective treatment strategies for people with
+PBC.
+
+## Key Covariates for our Reseach:
+
+In our research, we use the following variables/covariates in our Data
+matrix to answer our questions above:
+
+-   time: Patient Follow-up time (days)
+-   status: Health status of patient ($0$= censored, $1$= liver
+    transplant, $2$= dead)
+-   age: Patient age (years)
+-   sex: Patient gender at birth (m=male, f=female)
+-   bili: Bilirubin produced when red blood cell breakdown (mg/dl)
+-   albumin: Albumin protein produced (g/dl)
+-   copper: Hepatic copper concentration ($mu$g/g)
+-   protime: Prothrombin time, time blood takes to clot (sec)
+-   stage: Histologic stage of PBC ($1$= minimal fibrosis, $2$= moderate
+    fibrosis, $3$ = advanced fibrosis, $4$= cirrhosis)
+-   trt: Treatment group ($1$= placebo, $2$= D-penicillamine)
+-   ast: Aspartate Aminotransferase, liver enzyme to idenfity liver
+    inflammation or damage (U/L)
+
+
+# Understanding Our Data
+
+    To help us found out how effective Mayo Clinic's treatment of PBC
+is, we must first load and observe a few data entries of our dataset.
+This will help us spot some noticeable features of our data as well as
+see if there are null entries that we might have to remove. As the
+inclusion of null values can lead to biased results. 
+
+## Loading Our Dataset and the First Few Entries of our Data:
+
+```{r,echo=FALSE}
+#Loading Nessecary Libraries
+library(survival)
+library(survminer)
+
+data(pbc)
+head(pbc[, -c(1,9,10,15,18)])
+```
+
+    When looking over the first few data entries of our data, we can see
+something significant. In which the entries we have under the *status*
+variable. As our *status* variable has $3$ different catergories. With
+$0$ being censored observations, $1$ being patients who got a liver
+transplant, and $2$ being patients who died. This is significant because
+this tells us that that are competing risks in our dataset. We will get
+into more detail when we begin getting intial insight on the
+effectiveness of our treatment. 
+
+## Last Few Data Entries:
+
+```{r,echo=FALSE}
+tail(pbc[, -c(1,9,10,15,18)])
+```
+
+    We can notice that we will need to be aware of cleaning our data
+properly as we have many entries that have "NA" values. Which can affect
+our results for our research. Hence we will need to remove entries that
+have "NA" values.
+
+\newpage
+# Intial Insights on the Effectiveness of Our Treatment
+
+    As discussed when we were observing a few entries of our dataset, we
+notice that there are competing risks in our data. In our situation,
+where we are trying to see the effectiveness of our treatment, we will
+be utilizing a composite endpoint approach. In which we will be treating
+death and liver transplant as a adverse event that patients could
+experience. As a patient receiving D-penicillamine and later needing a
+liver transplant, would indicate that our treatment is ineffective. This
+is also the same when a patient dies. Where there is no benefit in
+taking the drug.
+
+## Fitting Survival Function Based on Treatment
+
+```{r,echo=FALSE}
+pbc=na.omit(pbc[, -c(1,9,10,15,18)])
+pbc.surv=Surv(pbc$time,pbc$status>0)
+surv_fit=survfit(pbc.surv~trt,data=pbc)
+surv_fit
+```
+
+    Based on the Mayo Clinic dataset, our PBC patients who took the
+placebo have a median survival time of $2,583$ days. This means that 50%
+of the patients who took the placebo drug have died or have experienced
+a liver transplant after $2,583$ days. We can also notice that patients
+who recevived D-penicillamine have a median survival time of $3,170$
+days. Overall, $138$ patients took the placebo and $142$ took
+D-penicillamine. With $66$ of the placebo patients and $64$ of the
+treatment patients who have died or have received a liver transplant.
+With the results that we get we can see that the D-penicillamine
+treatment is working in prolonging the need to liver transplant and
+life. However, we must note that we are unsure this is statistically significant, as further testing is required. To get a better understanding of the patient's survival probability, we will utilize a Kaplan-Meier Survival curve.
+
+## KM Estimate Plot Based on Treatment with 95% Confidence Interval
+
+```{r,echo=FALSE}
+pbc$trt <- factor(pbc$trt, levels = c(1, 2), labels = c("Placebo", "D-penicillamine"))
+ggsurvplot(survfit(Surv(pbc$time,pbc$status>0)~pbc$trt),
+           data = pbc,
+           surv.median.line="hv",
+           conf.int=TRUE,
+           title = "Kaplan Meier Survival Curve Based on Treatment",
+           xlab = "Time (Days)",
+           ylab = "Survival Probability",
+           ggtheme= theme_minimal()
+           )
+
+```
+
+    The KM Plot describes the behavior of the treatment group and the placebo group throughout the study, approximately $5000$ days. Notice how the two lines in our plot are basically following the same paths. As they intersect with each other and later start to deviate a little when time passes. This tells us that there is little to no difference in survival between the two groups. Which also means that it does not matter if you take the placebo or D-penicillamine they will yield similar results. 
+
+## Fiting a Cox Proportional Hazard Model Controlling Treatment
+```{r,echo=FALSE}
+summary(coxph(Surv(pbc$time,pbc$status>0)~trt,data=pbc))
+```
+\newpage
+
+    Based on the results produced from our Cox Proportional Hazard Model, we can notice that we get a *coef* value of $-0.08236$ and a *exp(coef)* value of $0.92094$. Which tells us that patients who have taken D-penicillamine are about $7.9$% less at risk of dying or needing a liver transplant. With a $95$% hazard ratio confidence interval between $(0.6528,1.299)$. However, we get a p-value of $0.639$, which indicates that the effect of D-penicillamine is not statistically significant. When applying a likelihood ratio test, we get a p-value of $0.6$. Which indicate that the addition of our treatment covariate to our Cox proportional hazard model does not improve our survival prediction. 
+
+
+
+# Model Fitting
+    Since the effect of D-penicillamine treatment was not significant, we will try fitting an improved model that incorporates the treatment variable to assess whether it can reveal a significant effect. To accomplish this, we will be utilizing the AIC forward selection method to find a improved model. 
+
+```{r,echo=FALSE}
+null_model=coxph(Surv(pbc$time,pbc$status>0)~trt,data=pbc)
+full_model=coxph(Surv(pbc$time,pbc$status>0)~.-time-status, data=pbc)
+
+#Forward Selection with AIC
+forward_model=step(null_model,
+               scope=list(lower=null_model, upper=full_model),
+               direction = "forward")
+```
+    When applying the AIC forward selection method, we notice that the following covariates: *trig*, *sex*, *age*, *chol*, *hepato*, and *acites* are not used to give us our improved model. 
+
+## Cox Proportional Hazard Model of Our Improved Model
+```{r,echo=FALSE}
+summary(forward_model)
+```
+    When looking at our improved model, a noteable thing has occurred. Which is the fact that our treatment covariate become more statisitically significant with a p-value of $0.34919$ compared to our previous p-value of $0.639$. However, this p-value is still not statistically significant enough for us to make a confident conclusion of D-penicillamine having a positive effect on slowing the progression of PBC. We can also observe that all of our covariates' effects besides our treatment are statistically significant. With *bili*, *stage*, and *copper* being the most statistically significant. As *bili*, *stages*, *copper*, *protime*, and *ast* increases, it leads to an decrease in a patient's survival rate. Whereas *albumin* increases, it decreases the risk of a patient dying or receiving a liver transplant. Based on the application of a likelihood ratio test on our model, we have a p-value of $<2\times10^{-16}$. Which indicate that the inclusions of our covariates significantly impact the improvement of our model.  
+
+# Model Assumptions 
+```{r,echo=FALSE}
+cox.zph(forward_model)
+```
+
+    Since our Global has a p-value of $0.022$, we will need to deal with our violating variables (i.e *bili*, *stage*, and *protime*). This might be due to the fact that we will need to adjust the non-linearity of our *bili* and *protime*. To test this we will be observing the distributions of *bili* and *protime*. It should be noted that *stage* is a catorgory variable. Which leads to us to stratify *stage*.
+
+
+## Checking Non-Linearity of Our Covariates
+    To test non-linearity of our *bili* and *protime* we will transform our variables by utilizing the log function.
+```{r,echo=FALSE}
+par(mfrow=c(2,2))
+hist(pbc$bili, main = "Bilirubin")          # Right-skewed
+hist(log(pbc$bili), main = "Log(Bilirubin)")    # More symmetric
+hist(pbc$protime, main = "Protime")
+hist(log(pbc$protime), main="Log(Protime)")
+```
+
+    We notice that our covariates are originally skewed to the right. Applying a log-transform has caused our distributions of *bili* and *protime* to be more symmetric (i.e. more of a bell-shaped curve). This indicates that we are making a non-linearity adjustment on our variables. Which help reduce skewness and make our hazard relationships more linear.  
+
+## Fitting a Cox PH Model with Newly Log-Transformed Covariates
+```{r,echo=FALSE}
+summary(coxph(Surv(time,status > 0) ~ trt + log(bili) + strata(stage) + copper + 
+    albumin + log(protime) + ast,data=pbc))
+
+```
+    The cox proportional hazard model shows that D-penicillamine is linked to a risk reduction (*coef* = $–0.02662$), but has no significant treatment effect ($p = 0.88487$). In contrast, log-transformed bilirubin increases risk (*coef* = $0.75107$), while having significant effect on treatment($p < 1\times 10^{-9}$). On the other hand, copper levels lead to a minor yet significant increase (*coef* = $0.002613$, $p = 0.00720$). *Albumin* seems to lower the risk (*exp(coef)* = $0.51334$, $p = 0.00415$), while log-transformed prothrombin time increases the risk (*coef* = $2.39516$, $p = 0.04212$). Lastly, *ast* has little impact (*coef* = $0.000322$), and is also not significant towards treatment ($p = 0.85567$). Overall, the covariates significantly improve the model's predictive ability (likelihood ratio $p <2\times10^{-16}$). Interestingly, notice that our treatment covariate has become way less statistically significant with a p-value of $0.88487$.
+
+
+
+
+
+## Checking our Proportional Hazards Assumptions on Our New Model
+```{r,echo=FALSE}
+test=cox.zph(coxph(Surv(time,status > 0) ~ trt + log(bili) + strata(stage) + copper + 
+    albumin + log(protime) + ast,data=pbc))
+test
+```
+    Using cox.zph, we can find that most covariates have a p-value of over our significance level of $0.05$, indicating that there is no significant evidence supporting the idea that they change over time. On the other hand, we can find that *log(protime)* is significant ($p=0.049$), implying that there is significant evidence that it changes over time. While this is true, the full model shows no significant evidence for change over time, allowing us to conclude that the assumption for Coxph is satisfied.
+
+### Ploting our Residuals
+```{r,echo=FALSE}
+par(mfrow = c(2, 3))
+plot(test)
+```
+
+    Ideally, we want a linear relationship between residuals, with slope equal to zero. Looking at the y-axis, our covariates Aspartate Aminotransferase (*ast*) and copper have the fewest increments. This means that these two covariates have the most linear residual relationship in our model. However, since the curve is not completely flat, the proportional hazard assumptions may have been slightly violated. This is especially apparent in the other covariates, which experience increasing and decreasing trends, indicating that they change over time. This violates the proportional hazards assumption, as we are looking to identify a treatment that does not falter over time. Therefore, we are less likely to violate the proportional hazard assumptions for Aspartate Aminotransferase (*ast*) and copper than for the other covariates in our model. This is because the hazard ratio of these two variables is $1$, and has little effect on treatment. Thus, Aspartate Aminotransferase (*ast*) and copper experience little treatment effects over time, sustaining our proportional hazard assumption. 
+
+
+
+# Finding Confounding Clinic Factors Effect Our Treatment
+    In order to complete our research question, we must see that there are relevant covariates in our dataset that will have an effect on our treatment. To accomplish this we will be looking into the interactions between our treatment and significant covariates that we got when we were getting the best model of fit. 
+```{r,echo=FALSE}
+summary(coxph(Surv(pbc$time,pbc$status>0)~trt+trt:log(bili)+trt:strata(stage)+ trt:copper+trt:albumin+trt:log(protime) + trt:ast,data=pbc))
+```
+    Based on the above table, we can find that alone, D-penicillamine doesn’t have a significant impact on survival time. On the other hand, Bilirubin seems to have a significant impact on survival time. Copper seems to have a significant effect only with the placebo, while on the other hand albumin seems to have a significant effect on both D-penicillamine and the placebo. We can thus infer that bilirubin, copper, and albumin seem to have a significant effect on the patient’s survival time. On the other hand, log-transformed prothrombin time and AST are not statistically significant, implying that they don’t have much effect on the treatment. Our likelihood ratio test ($p<2\times10^{-16}$) seems to confirm that these interaction terms have a significant impact on the model.
+
+
+
+# Hazard Ratios and 95% Confidence Intervals
+```{r,echo=FALSE}
+model=summary(coxph(Surv(time,status > 0) ~ trt + log(bili) + strata(stage) + copper + 
+    albumin + log(protime) + ast,data=pbc))
+hr_ci <- data.frame(
+  HR = model$coefficients[, "exp(coef)"],
+  lower_95_CI = model$conf.int[, "lower .95"],
+  upper_95_CI = model$conf.int[, "upper .95"]
+)
+hr_ci
+```
+    The presence of penicillamine is not statistically significant, with a hazard ratio of $0.97$; penicillamine has a protective effect. However, since the confidence interval is $0.68$ to $1.40$ with $95$% confidence, it is not statistically significant in our model. However, bilirubin is highly significant with a hazard ratio of $2.12$ and a confidence interval between $1.67$ and $2.68$ with $95$% confidence. Therefore, bilirubin is strongly associated with an increase in death. Copper, in our model has a hazard ratio of $1$, with a confidence interval centered around $1$, suggesting a minimal effect. However, this may be misleading because we did not account for the scale of the variable. Since the hazard ratio reflects the effect per one-unit increase, and copper may be measured in small units, meaningful effects from larger changes could be obscured. Albumin significantly decreases the hazard ratio with a value of $0.51$, and a confidence interval between $0.33$ and $0.81$ with $95$% confidence. Prothrombin time has significant adverse effects in our model, with a hazard ratio of $10.97$. However, the wide confidence interval between $1.089$ and $110.50$ suggests high uncertainty, possibly due to outliers in our dataset. Finally, Aspartate Aminotransferase (ast) has a hazard probability of $1$, indicating an uncertain effect on patient survival time. However, with a confidence interval between $0.997$ and $1.004$, Aspartate Aminotransferase is not statistically significant in our model. In which, we should remove Aspartate Aminotransferase from our model. 
+
+
+
+# Conclusion
+
+    To answer whether D-penicillamine is effective in slowing the progression of primary biliary cholangitis, and how other confounding clinical factors interact and influence survival time, we created a cox proportional hazard model. Our model shows that D‑penicillamine alone does not significantly slow the progression of PBC, as its effect on survival is little to none. Instead, key clinical factors have been found to substantially influence patient outcomes: higher levels of log-transformed bilirubin and prothrombin time are associated with a marked increase in risk. In contrast, elevated albumin levels result in a decrease in risk. A minor yet significant increase in risk is observed with an increase in copper levels, whereas AST does not significantly affect survival times. Therefore, while the main treatment shows little to no effect, other key clinical factors have been shown to affect the survival times for PBC patients.
+
+
+
+
+
+
+# Advanced Methods
+    As mentioned in the beginning of our analysis, we note that our dataset provides us with competing risks. To handle the competing risks to answer our research question, we treated both death and liver transplant as an event. Which we treat death and the need to a liver transplant negative events as needing a transplant means that our treatment is not working on our patient. Now, we are interested in finding the effect of our treatment based on our two competing risks death and liver transplant. To accomplish this we will be utilizing a competing risk analysis. 
+
+## Number of Event Occurrances
+```{r,echo=FALSE}
+event=table(pbc["status"])
+names(event)=c("Censored", "Liver Transplant", "Death")
+event
+```
+    Based on the results, we have $18$ patients who received liver transplants and $112$ patients dying. We also notice that we have $150$ censored patients. Which indicates that $150$ patients are either still alive or have dropped out of the study. 
+
+## Cumulative Incidence Function
+    In our analysis, we will be studying th probability of one of our competing risks occurring over time while accounting for the other competing risk. Meaning that we will looking at the probability of receiving a liver transplant over time, accounting for the risk of death and vice versa. To accomplish this we will use a cumulative incidence function to observe this trend.
+
+```{r,echo=FALSE}
+library(cmprsk)
+cif=cuminc(ftime = pbc$time, fstatus = pbc$status)
+names(cif)=c("Liver Transplant", "Death")
+plot(cif, lty = 1, col = c("red", "blue"), 
+     xlab = "Time (days)", 
+     ylab = "Cumulative incidence",
+     main="Cumulative Incidence Function Plot")
+grid()
+
+```
+    Based on our plot above, we notice that patients in our dataset are more likely to die compared to getting a liver transplant. We can also observe that our cumulative incidence curves of both competing risks follow a linear trend. Which suggests that there is a constant hazard rate of patients experiencing either risk.  
+
+
+## Cumulative Incidence Function Based on Treatment
+    Now, we will be looking into the effects of our treatment based on each competing risk accounting for the other competing risk by using Gray's test for testing our treatment effect.
+```{r,echo=FALSE}
+ci_fit=cuminc(ftime = pbc$time, fstatus = pbc$status, group = pbc$trt)
+
+#Relabeling 1 to transplant and 2 to death
+names(ci_fit)=gsub("1$", "Liver Transplant", names(ci_fit))
+names(ci_fit)=gsub("2$", "Death", names(ci_fit)) 
+
+plot(ci_fit, col = c("red", "red", "blue", "blue"), lwd = 2,
+     xlab = "Time (days)", ylab = "Cumulative incidence",
+     main="Cumulative Incidence Function Based on Treatment Plot",
+     lty = c(1, 2, 1, 2))  # Line types by treatment group
+
+grid()
+```
+    With our new CIC(Cumulative Incidence Curve) based on treatment, we notice that our dotted lines follow similar paths are its corresponding solid line. As we see that the red lines that tell us about patients who got liver transplants based on treatments are pretty much a match. Which indicate that D-penicillamine has the same effects as the placebo. Meaning that our treatment is not effective. We can also see a similar outcome with our death risk in the aspect of treatments. As the lines with patients who died with different treatments follow similar trends. This means that D-penicillamine does not do anything in helping with curing or slowing the progression of Primary Biliary Cholangitis. Which also further confirms our conclusions of our research question.
+
+## Gray's Test Result
+```{r,echo=FALSE}
+ci_fit$Tests
+```
+    Based on the results from our Gray's test, we see that for both risks our we get extremely small positive test statistics. Which indicate that our placebo group has a very slightly higher risk rate than our D-penicillamine patient groups for both competing risks. However, it should be noted that this effect is not statistically significant enough for us to conclude the positive effect of our treatment. With our liver transplant group having a p-value of $0.9546729$ and our death group having a p-value of $0.6815877$. 
+
+
+## Fine-Gray Model for Transplant
+    It is always important to find out how other variables that will affect our patient's health. With that being said, in the case of our competing risk regression, we will utilize the Fine-gray model to first access our transplant patients. In which it will let us compile the effect of covariates in our cumulative incidence function previously mentioned. 
+```{r,echo=FALSE}
+fg_transplant <- crr(ftime = pbc$time,
+                     fstatus = pbc$status,
+                     cov1 = model.matrix(~ trt + age + sex + copper+stage+albumin + log(protime) + ast+log(bili), data = pbc)[, -1],  # remove intercept
+                     failcode = 1)
+summary(fg_transplant)
+```
+    We can find from the above competing risks regression model at a $0.05$ significance level that *age* and  *log(Protime)* are significant predictors in determining the survival times for those who will undergo transplants. In this case, we can find that younger people and those with higher prothrombin time have a higher chance of getting a transplant. We can also observe that the effects of our treatment is still insignificant (with a p-value of $0.65$).
+
+
+
+```{r,echo=FALSE}
+trans_p_value=pchisq(30.5, df = 9, lower.tail = FALSE)
+paste0("P-Value: ",trans_p_value)
+```
+    By the Pseudo Log-likelihood ratio test, we can find that this model has a significant influence on predicting the survival time of patients till they have a transplant as we notice a p-value of $0.00036$.
+
+
+## Fine-Gray Model for Death
+    Now, we will be looking into a Fine-Gray model for our subjects who have passed away and see what relevant covariates effect the probability of our patients dying over time, while accounting for the risk of a transplant.  
+
+```{r,echo=FALSE}
+fg_death <- crr(ftime = pbc$time,
+                     fstatus = pbc$status,
+                     cov1 = model.matrix(~ trt + age + sex + copper+stage+albumin + log(protime) + ast+log(bili), data = pbc)[, -1],  # remove intercept
+                     failcode = 2)
+summary(fg_death)
+
+```
+    We can find that the above competing risks regression model at a $0.05$ significance level, that *age*, *stage*, *albumin*, *log(protime)*, *ast*, and *lob(bili)* are all significant predictors in determining the survival probability for those who will die. We can find that those who are older, have a higher disease stage, lower albumin, higher *log(protime)*, higher *ast*, and higher *log(bilirubin)* all increase risk and chance for death. In addition, we can find that *log(protime)* has a much more significant impact on the survival time than other covariates, significantly increasing the risk. What is interesting is that we notice that there are additional covariate effects in our death model are more statisitically significant than our transplant model. This signals that our covariates have stronger assocations with the progression of PBC, which lead to death. We must account for the fact that we have signficantly more cases of death than liver transplants.
+```{r,echo=FALSE}
+death_p_value=pchisq(169, df = 9, lower.tail = FALSE)
+paste0("P-Value: ",death_p_value)
+```
+    By the pseudo log-likelihood ratio test, we can find that the model has a significant influence on predicting the survival time for those who will die with a p-value of $9.97\times10^{-32}$. 
+
+# Overall Thoughts
+
+    From our competing risks analysis, which separately examines liver transplant and death, we can find a similar result from our earlier Cox model, further reinforcing our findings. We once again found that D‑penicillamine does not significantly slow the progression of PBC. The cumulative incidence curves for both events show similar trajectories between the D‑penicillamine and placebo groups, and we can also find a higher baseline risk for death due to a faster rising cumulative incidence curve than with transplants. Gray’s tests ($p = 0.9547$ for liver transplant and $p = 0.6816$ for death) confirm that there are no significant differences in risk between the treatments. This indicates that, even when accounting for the competing nature of death and transplant as negative outcomes, D‑penicillamine does not give a survival benefit. Instead, other covariates such as log-transformed bilirubin and prothrombin time, which increase the hazard rate, and higher albumin levels, which decrease the hazard rate, still result as the key influencers in predicting survival in PBC patients. With all that is said, with both analyses that we applied have yield similar results. In that our D‑penicillamine treatment does not have significant effects on the progression of patients with PBC that would lead to adverse events (i.e. death or getting liver transplant).\
+    Even with controlling for our confounding variables, our treatment model remains statistically insignificant. Interestingly we notice that there are some covariates that will impact death and not transplant. It should be noted that we have significantly more cases of death than liver transplants. Females are more susceptible to PBC than males, and this was a defining factor in our analysis of PBC. Despite the inclusion of sex and other clinical predictors of PBC, the effect of treatment does not meet statistically relevant conditions to be an effective treatment option. Furthermore, the effect of these variables may change with time, violating our Cox PH Assumption. The lack of statistical relevance in the final Cox PH Model and the Competing Risk Regression proves that the effect of treatment is inherently insignificant. The fact that similar results were yielded across multiple tests in our analysis is evidence of this. Thus, D-penicillamine and other confounding clinical factors do not significantly impact survival time in PBC patients, regardless of sex.
+
+\newpage
+
+# Reference
+Gray, Bob. 2024. cmprsk: Subdistribution Analysis of Competing Risks. Version 2.2-12, May 19. CRAN. <https://www.R-project.org>\
+
+
+Kleinbaum, D. G., & Klein, M. (2012). Survival Analysis : A Self-Learning Text, Third Edition (3rd ed. 2012.). Springer New York. 430-455, 468-473 <https://doi.org/10.1007/978-1-4419-6646-9>\
+
+Mayo Clinic Staff. "Primary Biliary Cholangitis (PBC) – Symptoms and
+    Causes." Mayo Clinic, April 4, 2023.
+    <https://www.mayoclinic.org/diseases-conditions/primary-biliary-cholangitis/symptoms-causes/syc-20376874>\
+
+R Core Team. "PBC Data Set." CRAN - R Project for Statistical
+    Computing. Accessed May 6, 2025.
+    <https://search.r-project.org/CRAN/refmans/compound.Cox/html/PBC.html>\
+
+Therneau, Terry M., and Patricia M. Grambsch. 2010. Modeling
+    Survival Data: Extending the Cox Model. Edited by Terry M. Therneau
+    and Patricia M. Grambsch. N.p.: Springer. 10.1007.\
+    
+Trivella, J., John, B. V., & Levy, C. (2023). Primary biliary
+    cholangitis: Epidemiology, prognosis, and treatment. Hepatology
+    communications, 7(6), e0179.
+    <https://doi.org/10.1097/HC9.0000000000000179>
+    
+
